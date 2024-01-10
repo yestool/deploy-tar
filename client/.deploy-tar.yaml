@@ -1,0 +1,5 @@
+apiKey: 1111111111
+server: http://127.0.0.1:8081/upload
+webPath: /www/wwwroot/test123.com/
+tarPath: /deploy-tar/test/
+webSite: test123.com

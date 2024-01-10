@@ -1,0 +1,5 @@
+apiKey: 123456
+serverPort: 8080
+keepFiles: 3
+maxUploadSize: 104857600
+funcHandle: /upload

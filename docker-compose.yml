@@ -1,0 +1,11 @@
+version: '3'
+services:
+  deploy-tar:
+    image: yestool/deploy-tar:v1.0
+    ports:
+      - "8081:8080"
+    environment:
+      APP_APIKEY: 1111111111
+    volumes:
+      - ./tars:/uploadfiles
+      - ./webs:/www/wwwroot
