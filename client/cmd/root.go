@@ -16,9 +16,8 @@ import (
 	"github.com/yestool/deploy-tar/client/upload"
 )
 
-
 var (
-	cfgFile     string
+	cfgFile      string
 	deployConfig config.Config
 )
 
@@ -26,15 +25,16 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "deploy-tar",
 	Short: "deploy tar.gz to server",
-	Long: `deploy tar.gz to server`,
-	Run: func(cmd *cobra.Command, args []string) { 
+	Long:  `deploy tar.gz to server`,
+	Run: func(cmd *cobra.Command, args []string) {
 
 		deployConfig = config.Config{
-			ApiKey: viper.GetString("apiKey"),
-			Server: viper.GetString("server"),
-			WebPath: viper.GetString("webPath"),
-			TarPath: viper.GetString("tarPath"),
-			WebSite: viper.GetString("webSite"),
+			ApiKey:      viper.GetString("apiKey"),
+			Server:      viper.GetString("server"),
+			WebPath:     viper.GetString("webPath"),
+			TarPath:     viper.GetString("tarPath"),
+			WebSite:     viper.GetString("webSite"),
+			Socks5Proxy: viper.GetString("socks5Proxy"),
 		}
 		fmt.Printf("deploy [%s] to remote server \n", deployConfig.TarPath)
 		if !isTarGz(deployConfig.TarPath) {
@@ -60,31 +60,31 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-  rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is /app/.deploy-tar.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is /app/.deploy-tar.yaml)")
 	viper.BindPFlag("apiKey", rootCmd.PersistentFlags().Lookup("apiKey"))
 	viper.BindPFlag("server", rootCmd.PersistentFlags().Lookup("server"))
 	viper.BindPFlag("webPath", rootCmd.PersistentFlags().Lookup("webPath"))
 	viper.BindPFlag("tarPath", rootCmd.PersistentFlags().Lookup("tarPath"))
-  viper.SetDefault("author", "YesTool")
+	rootCmd.PersistentFlags().String("socks5-proxy", "", "socks5 proxy address for upload, e.g. 127.0.0.1:1080 or socks5://user:pass@127.0.0.1:1080")
+	viper.BindPFlag("socks5Proxy", rootCmd.PersistentFlags().Lookup("socks5-proxy"))
+	viper.SetDefault("author", "YesTool")
 }
 
 func initConfig() {
-  // Don't forget to read config either from cfgFile or from home directory!
-  if cfgFile != "" {
-    // Use config file from the flag.
-    viper.SetConfigFile(cfgFile)
-  } else {
-    viper.AddConfigPath("/app")
-    viper.SetConfigName(".deploy-tar")
-  }
+	// Don't forget to read config either from cfgFile or from home directory!
+	if cfgFile != "" {
+		// Use config file from the flag.
+		viper.SetConfigFile(cfgFile)
+	} else {
+		viper.AddConfigPath("/app")
+		viper.SetConfigName(".deploy-tar")
+	}
 	viper.AutomaticEnv()
-  if err := viper.ReadInConfig(); err != nil {
-    fmt.Println("Can not read config:", viper.ConfigFileUsed())
-  }
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("Can not read config:", viper.ConfigFileUsed())
+	}
 }
-
 
 func isTarGz(path string) bool {
 	return strings.HasSuffix(path, ".tar.gz")
 }
-

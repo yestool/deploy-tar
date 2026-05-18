@@ -18,6 +18,8 @@ server: http://127.0.0.1:8081/upload
 webPath: /www/wwwroot/test123.com/
 tarPath: /root/go-code/deploy-tar/test/
 webSite: test123.com
+# optional, only set it when upload needs to access server through socks5
+socks5Proxy: 127.0.0.1:1080
 ```
 
 
@@ -33,6 +35,8 @@ webPath: Untargz to this directory, if you use docker, just volumes your real we
 tarPath: can be **xxx.tar.gz** or a **directory**. if it's a directory, Package as tar.gz file first,then upload.
 
 webSite: just a websit id tag.
+
+socks5Proxy: optional socks5 proxy for upload. It supports `127.0.0.1:1080` and `socks5://user:pass@127.0.0.1:1080`.
 ```
 
 

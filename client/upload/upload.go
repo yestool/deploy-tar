@@ -7,11 +7,14 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
-	"github.com/yestool/deploy-tar/client/config"
-)
+	"strings"
 
+	"github.com/yestool/deploy-tar/client/config"
+	"golang.org/x/net/proxy"
+)
 
 func UploadTar(config config.Config) error {
 	file, err := os.Open(config.TarPath)
@@ -47,14 +50,17 @@ func UploadTar(config config.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to close writer: %w", err)
 	}
-	
+
 	req, err := http.NewRequest("POST", config.Server, body)
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := http.Client{}
+	client, err := newHTTPClient(config.Socks5Proxy)
+	if err != nil {
+		return err
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
@@ -70,11 +76,62 @@ func UploadTar(config config.Config) error {
 	return nil
 }
 
+func newHTTPClient(socks5Proxy string) (*http.Client, error) {
+	socks5Proxy = strings.TrimSpace(socks5Proxy)
+	if socks5Proxy == "" {
+		return &http.Client{}, nil
+	}
 
-func attachField(bodyWriter * multipart.Writer, keyname, keyvalue string) error {
+	proxyAddr, auth, err := parseSocks5Proxy(socks5Proxy)
+	if err != nil {
+		return nil, err
+	}
+
+	dialer, err := proxy.SOCKS5("tcp", proxyAddr, auth, proxy.Direct)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create socks5 proxy dialer: %w", err)
+	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil
+	transport.DialContext = nil
+	transport.Dial = dialer.Dial
+
+	return &http.Client{Transport: transport}, nil
+}
+
+func parseSocks5Proxy(proxyValue string) (string, *proxy.Auth, error) {
+	if !strings.Contains(proxyValue, "://") {
+		return proxyValue, nil, nil
+	}
+
+	proxyURL, err := url.Parse(proxyValue)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid socks5 proxy: %w", err)
+	}
+	if proxyURL.Scheme != "socks5" && proxyURL.Scheme != "socks5h" {
+		return "", nil, fmt.Errorf("unsupported proxy scheme %q, only socks5 is supported", proxyURL.Scheme)
+	}
+	if proxyURL.Host == "" {
+		return "", nil, fmt.Errorf("invalid socks5 proxy: host is required")
+	}
+
+	var auth *proxy.Auth
+	if proxyURL.User != nil {
+		password, _ := proxyURL.User.Password()
+		auth = &proxy.Auth{
+			User:     proxyURL.User.Username(),
+			Password: password,
+		}
+	}
+
+	return proxyURL.Host, auth, nil
+}
+
+func attachField(bodyWriter *multipart.Writer, keyname, keyvalue string) error {
 	if err := bodyWriter.WriteField(keyname, keyvalue); err != nil {
-			log.Printf("Cannot WriteField: %s, err: %v", keyname, err)
-			return err
+		log.Printf("Cannot WriteField: %s, err: %v", keyname, err)
+		return err
 	}
 	return nil
 }
